@@ -15,6 +15,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet" />
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+
 <style>
   :root {
     --conifer: #1f3d2b;      /* deep forest green */
@@ -151,6 +153,29 @@
   h2 .jp { font-family: var(--body); font-weight: 700; }
   .sec-note { color: var(--bark); max-width: 62ch; margin: 0 0 26px; }
 
+  /* ---------- map ---------- */
+  #map {
+    height: 440px;
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    box-shadow: 0 10px 30px rgba(31,61,43,0.10);
+  }
+  .map-legend {
+    margin-top: 14px;
+    font-size: 0.88rem;
+    color: var(--bark);
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .pin { display: inline-flex; align-items: center; gap: 7px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.15); }
+  .dot.home { background: var(--bark); }
+  .dot.park { background: var(--conifer-soft); }
+  .dot.pick { background: var(--poppy); }
+
   /* ---------- tips ---------- */
   .tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap: 18px; }
   .tip {
@@ -215,6 +240,7 @@
 
   @media (max-width: 520px) {
     section { padding: 40px 0; }
+    #map { height: 360px; }
     .callout { flex-direction: column; gap: 12px; }
   }
 
@@ -291,6 +317,13 @@
           <span class="jp">公園内はほぼ圏外です。電波があるうちにGoogleマップでヨセミテのエリアをオフライン保存して、このガイドもスクショしておいてね。</span>
         </p>
       </div>
+      <div class="tip">
+        <h4><span class="en">Text for live updates</span><span class="jp">最新情報はテキストで</span></h4>
+        <p>
+          <span class="en">Text the word Yosemite to 333111 for SMS alerts on parking and traffic. Texts get through on weak signal when data won't, so sign up before the canyon. Road hotline: 209-372-0200 (press 1, then 1).</span>
+          <span class="jp">「Yosemite」と333111にSMS送信すると、駐車場や渋滞の通知が届きます。テキストはデータが使えない弱い電波でも届くので、谷に入る前に登録してね。道路情報の電話：209-372-0200（1、1の順に押す）。</span>
+        </p>
+      </div>
     </div>
   </section>
 
@@ -335,6 +368,11 @@
         </p>
       </div>
     </div>
+    <p class="note">
+      <span class="label"><span class="en">Drive or bus?</span><span class="jp">運転かバスか？</span>:</span>
+      <span class="en"> Drive the whole way in. The YARTS buses only run from gateway towns like Merced, not from San Jose, so they are not worth it for a day trip. The free shuttle is just for getting around once you have parked.</span>
+      <span class="jp"> 全部運転で行くのがおすすめ。YARTSのバスはマーセドなどの玄関町からしか出ておらず、サンノゼからは使えないので、日帰りには向きません。無料シャトルは、駐車した後に園内を移動するためのものです。</span>
+    </p>
   </section>
 
   <!-- WHAT TO SEE -->
@@ -398,6 +436,24 @@
     </p>
   </section>
 
+  <!-- MAP -->
+  <section>
+    <div class="sec-head">
+      <div class="sec-eyebrow"><span class="en">On the map</span><span class="jp">地図で見る</span></div>
+      <h2><span class="en">Where everything is</span><span class="jp">それぞれの場所</span></h2>
+    </div>
+    <p class="sec-note">
+      <span class="en">You enter at the northwest (brown). The valley sights cluster together (green), and Glacier Point (orange) is a separate drive to the south. Tap a pin for details.</span>
+      <span class="jp">入口は北西（茶色）。バレーの見どころはまとまっていて（緑）、グレイシャー・ポイント（オレンジ）は南へ少し離れた別の運転です。ピンをタップすると詳細が出ます。</span>
+    </p>
+    <div id="map"></div>
+    <div class="map-legend">
+      <span class="pin"><span class="dot home"></span><span class="en">Park entrance</span><span class="jp">入口</span></span>
+      <span class="pin"><span class="dot park"></span><span class="en">Valley sights</span><span class="jp">バレーの見どころ</span></span>
+      <span class="pin"><span class="dot pick"></span><span class="en">Glacier Point</span><span class="jp">グレイシャー・ポイント</span></span>
+    </div>
+  </section>
+
   <!-- ESSENTIALS -->
   <section>
     <div class="callout">
@@ -446,6 +502,7 @@
   <span class="jp">心をこめて作りました · 道路・料金・状況は変わることがあるので、出発の朝に nps.gov/yose を確認してね。</span>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
   function setLang(lang) {
     document.body.setAttribute('data-lang', lang);
@@ -453,6 +510,31 @@
     document.getElementById('btn-en').setAttribute('aria-pressed', lang === 'en');
     document.getElementById('btn-jp').setAttribute('aria-pressed', lang === 'jp');
   }
+
+  // ---- Map of key sites ----
+  var sites = [
+    { name: "Big Oak Flat Entrance", coords: [37.8009, -119.8743], kind: "home", info: "Where you enter the park" },
+    { name: "Tunnel View", coords: [37.7156, -119.6774], kind: "park", info: "The classic valley view" },
+    { name: "Valley View", coords: [37.7169, -119.6663], kind: "park", info: "Half Dome from the river" },
+    { name: "El Capitan Meadow", coords: [37.7220, -119.6356], kind: "park", info: "Under the granite wall" },
+    { name: "Lower Yosemite Fall", coords: [37.7565, -119.5969], kind: "park", info: "Tallest waterfall, short loop" },
+    { name: "Sentinel Bridge", coords: [37.7424, -119.5878], kind: "park", info: "Half Dome view" },
+    { name: "Glacier Point", coords: [37.7274, -119.5736], kind: "pick", info: "The big panorama, ~1 hr drive up" }
+  ];
+  var colors = { home: "#5b4632", park: "#2f5840", pick: "#e88a2a" };
+  var map = L.map('map', { scrollWheelZoom: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
+  }).addTo(map);
+  var pts = [];
+  sites.forEach(function(s) {
+    pts.push(s.coords);
+    L.circleMarker(s.coords, {
+      radius: s.kind === 'pick' ? 10 : (s.kind === 'home' ? 9 : 8),
+      fillColor: colors[s.kind], color: '#fff', weight: 2, fillOpacity: 1
+    }).addTo(map).bindPopup('<strong>' + s.name + '</strong><br>' + s.info);
+  });
+  map.fitBounds(L.latLngBounds(pts).pad(0.15));
 </script>
 </body>
 </html>
